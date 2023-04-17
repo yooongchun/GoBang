@@ -17,13 +17,11 @@ class Config(object):
     CHESS_BLACK = str(pathlib.Path(PROJ_DIR, "assets/img/black.png"))
     CHESS_WHITE = str(pathlib.Path(PROJ_DIR, "assets/img/white.png"))
 
-    # 北京音效
+    # 背景音效
     SOUND_DEFEATED = str(pathlib.Path(PROJ_DIR, "assets/sound/defeated.wav"))
     SOUND_WIN = str(pathlib.Path(PROJ_DIR, "assets/sound/win.wav"))
     SOUND_MOVE = str(pathlib.Path(PROJ_DIR, "assets/sound/move.wav"))
 
-    # 赢棋的棋子连珠数
-    WIN_NUM = 5
     # 棋盘
     SIZE = 15
     
@@ -36,7 +34,23 @@ class Config(object):
 
 
 class State(object):
-    """棋子表示"""
+    """棋子表示
+    实际上这里的状态对卷积计算有影响，因此不能随意修改
+    """
     EMPTY = 0
     BLACK = 1
-    WHITE = 100 # 这么设置是为了黑白子求和不至于混淆
+    WHITE = -1
+
+
+class Point(object):
+    """定义点对象"""
+    def __init__(self, x: int, y: int, val: int=State.EMPTY):
+        self.x = x
+        self.y = y
+        self.state = val
+    
+    def __repr__(self) -> str:
+        return f"Point({self.x},{self.y}):config.State({self.state})"
+
+    def __str__(self) -> str:
+        return self.__repr__()
