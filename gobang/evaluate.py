@@ -9,6 +9,7 @@ from collections import defaultdict as ddict
 from itertools import combinations as comb
 
 import config
+import chessboard
 
 
 class Score(object):
@@ -166,7 +167,7 @@ class Matcher(object):
 
 class Evaluation(object):
     """棋盘评估类，给当前棋盘打分用"""
-    def __init__(self, board: typing.List[list], roi: int=8,
+    def __init__(self, board: chessboard.ChessBoard, roi: int=8,
                     point: typing.Optional[config.Point]=None,
                     target: config.Chess=config.Chess.BLACK):
         """初始化
@@ -177,65 +178,38 @@ class Evaluation(object):
             target: 评分的目标对象
 
         """
+        self._chessboard = board
+        # roi区域
+        self._roi = roi
+        # 落子点，用来判断位置得分
+        self._point = point
         # 这三个变量关联了序列的表示符号，不可更改
         self.x = target.value
-        self.roi = roi
         self.d = config.Chess.BLACK.value if self.x == config.Chess.WHITE else config.Chess.WHITE.value
         self.o = config.Chess.EMPTY.value
-        # 落子点，用来判断位置得分, 需要加入边框层
-        self.point = config.Point(point.x+1, point.y+1, point.chess) if point else None
-        # 拓展边框
-        size = len(board) + 2
-        self._board = [[self.d for _ in range(size)] for _ in range(size)]
-        for i in range(1, size-1):
-            self._board[i][1:-1] = board[i-1]
-        # 设置感兴趣区域
-        self.crop_roi()
-
-    def crop_roi(self):
-        """截取roi区域"""
-        if self.point and self.roi:
-            # 不能超过原大小
-            roi = min(self.roi, len(self._board))
-            start_x = max(0, self.point.x - roi + 1)
-            end_x = min(len(self._board), self.point.x + roi)
-            start_y = max(0, self.point.y - roi + 1)
-            end_y = min(len(self._board), self.point.y + roi)
-            # crop之后需要将区域补齐为正方形
-            left = True
-            while end_y - start_y > end_x - start_x:
-                if left:
-                    if start_x > 0:
-                        start_x -= 1
-                    left = False
-                else:
-                    if end_x < len(self._board):
-                        end_x += 1
-                    left = True
-            left = True
-            while end_x - start_x > end_y - start_y:
-                if left:
-                    if start_y > 0:
-                        start_y -= 1
-                    left = False
-                else:
-                    if end_y < len(self._board):
-                        end_y += 1
-                    left = True
-            # Point适配
-            self.point = config.Point(self.point.x-start_x, self.point.y-start_y, self.point.chess)
-            # crop区域
-            self._board = [[self._board[x][y] for x in range(start_x, end_x)] for y in range(start_y, end_y)]
+        # 添加边框
+        self._add_border()
 
     @property
     def position_score(self):
         """位置分,越靠近中心越高"""
-        if self.point is None:
+        if self._point is None:
             return 0
-        size = len(self._board) - 2
-        x = self.point.x
-        y = self.point.y
+        size = self._chessboard.size
+        x = self._point.x
+        y = self._point.y
         return min([x, y, size-x, size-y])
+
+    def _add_border(self):
+        """添加边框"""
+        size = self._chessboard.size + 2
+        new_board = [[self.d for _ in range(size)] for _ in range(size)]
+        board = self._chessboard.get_board()
+        for i in range(1, size-1):
+            new_board[i][1:-1] = board[i-1]
+        self._chessboard = chessboard.ChessBoard(new_board, size)
+        if self._point:
+            self._point = config.Point(self._point.x+1, self._point.y+1, self._point.chess)
 
     def get_score(self):
         """评估局面并给出打分"""
@@ -265,15 +239,16 @@ class Evaluation(object):
     def search_case(self, case: str, match_all=False):
         """搜索case"""
         # 通过字符串构建查找序列
+        roi_board = self._chessboard.get_board(self._point, self._roi)
         arr = [getattr(self, s) for s in case]
-        matcher = Matcher(self._board, arr, match_all)
+        matcher = Matcher(roi_board, arr, match_all)
         matched = matcher.match_arr()
         if matched:
             return matched
         # 序列不对称，则需要额外查找逆序
         arr2 = list(reversed(arr))
         if arr != arr2:
-            matcher = Matcher(self._board, arr2, match_all)
+            matcher = Matcher(roi_board, arr2, match_all)
             return matcher.match_arr()
         return None
 
@@ -285,9 +260,14 @@ class Evaluation(object):
                     if len(arr1) + len(arr2) > len(set(arr1) | set(arr2)):
                         return True
 
+    def check_win(self):
+        """是否已经获胜"""
+        return self.search_case('xxxxx')
+
     def show_roi(self):
         """display roi region"""
-        util.show(self._board)
+        roi = self._chessboard.get_board(self._point, self._roi)
+        util.show(roi)
 
 
 if __name__ == "__main__":
@@ -305,7 +285,8 @@ if __name__ == "__main__":
         [0, 1, 0, 2, 1, 1, 1, 1, 0, 0],
         [0, 0, 0, 1, 1, 2, 1, 0, 0, 0]]
 
-    evaluate = Evaluation(raw_input, roi=5, point=config.Point(1, 6, config.Chess.EMPTY))
+    board = chessboard.ChessBoard(raw_input, size=len(raw_input))
+    evaluate = Evaluation(board, roi=5, point=config.Point(1, 6, config.Chess.EMPTY))
     evaluate.show_roi()
     score = evaluate.get_score()
     print("Evaluate score:", score)

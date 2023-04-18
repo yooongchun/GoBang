@@ -25,7 +25,7 @@ class Config(object):
     SOUND_MOVE = str(pathlib.Path(PROJ_DIR, "assets/sound/move.wav"))
 
     # 棋盘
-    SIZE = 15
+    SIZE = 10
     
     # UI界面
     UI_HEIGHT = 540
