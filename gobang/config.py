@@ -5,7 +5,9 @@
 配置文件
 author:yooongchun@foxmail.com
 """
+import enum
 import pathlib
+from collections import namedtuple
 
 
 class Config(object):
@@ -33,24 +35,8 @@ class Config(object):
     UI_PIECE = 34
 
 
-class State(object):
-    """棋子表示
-    实际上这里的状态对卷积计算有影响，因此不能随意修改
-    """
-    EMPTY = 0
-    BLACK = 1
-    WHITE = -1
+# 棋子表示
+Chess = enum.IntEnum("Chess", {"EMPTY": 0, "BLACK": 1, "WHITE": 2})
 
-
-class Point(object):
-    """定义点对象"""
-    def __init__(self, x: int, y: int, val: int=State.EMPTY):
-        self.x = x
-        self.y = y
-        self.state = val
-    
-    def __repr__(self) -> str:
-        return f"Point({self.x},{self.y}):config.State({self.state})"
-
-    def __str__(self) -> str:
-        return self.__repr__()
+# 点对象
+Point = namedtuple("Point", ["x", "y", "chess"])
