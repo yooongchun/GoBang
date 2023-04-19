@@ -7,7 +7,6 @@ author:yooongchun@foxmail.com
 """
 import enum
 import pathlib
-from collections import namedtuple
 
 
 class Config(object):
@@ -25,18 +24,28 @@ class Config(object):
     SOUND_MOVE = str(pathlib.Path(PROJ_DIR, "assets/sound/move.wav"))
 
     # 棋盘
-    SIZE = 10
+    SIZE = 15
     
     # UI界面
-    UI_HEIGHT = 540
-    UI_WIDTH = 540
-    UI_MARGIN = 22
-    UI_GRID = (UI_WIDTH - 2 * UI_MARGIN) / (SIZE - 1)
-    UI_PIECE = 34
+    UI_CHESS_SIZE = 36
+    UI_BG_SIZE = 540
 
 
 # 棋子表示
-Chess = enum.IntEnum("Chess", {"EMPTY": 0, "BLACK": 1, "WHITE": 2})
+class Chess(enum.IntEnum):
+    """棋子表示"""
+    EMPTY = 0
+    BLACK = 1
+    WHITE = 2
+
 
 # 点对象
-Point = namedtuple("Point", ["x", "y", "chess"])
+class Point(object):
+    """定义点对象"""
+    def __init__(self, x: int, y: int, val: enum.IntEnum=Chess.EMPTY):
+        self.x = x
+        self.y = y
+        self.chess = val
+
+    def __repr__(self) -> str:
+        return f"Point({self.x},{self.y}):{self.chess.name}"

@@ -4,11 +4,12 @@
 局面评估
 author: yooongchun@foxmail.com
 """
+import enum
 import typing
 from collections import defaultdict as ddict
 from itertools import combinations as comb
 
-import config
+from  config import Point, Chess
 import chessboard
 
 
@@ -25,9 +26,9 @@ class Score(object):
 
     # 单一形态可以直接在矩阵中搜索
     # Connected five
-    xxxxx = WIN + 5
+    xxxxx = WIN + 100
     # Live four
-    oxxxxo = WIN + 4
+    oxxxxo = WIN + 50
     # Half-died four
     oxxxxd = LEVEL1
     xoxxx = LEVEL1
@@ -53,8 +54,8 @@ class Score(object):
     xooox = LEVEL5
 
     # 组合形态需要进一步判断
-    c_db_half_died_four = WIN + 3
-    c_db_live_three = WIN + 2
+    c_db_half_died_four = WIN + 10
+    c_db_live_three = WIN + 1
     c_db_half_died_three = LEVEL2
 
 
@@ -167,9 +168,8 @@ class Matcher(object):
 
 class Evaluation(object):
     """棋盘评估类，给当前棋盘打分用"""
-    def __init__(self, board: chessboard.ChessBoard, roi: int=8,
-                    point: typing.Optional[config.Point]=None,
-                    target: config.Chess=config.Chess.BLACK):
+    def __init__(self, board: chessboard.ChessBoard, target: enum.IntEnum,
+                        roi: int=8, point: typing.Optional[Point]=None):
         """初始化
         Args:
             board: 棋盘, 二维数组
@@ -185,8 +185,8 @@ class Evaluation(object):
         self._point = point
         # 这三个变量关联了序列的表示符号，不可更改
         self.x = target.value
-        self.d = config.Chess.BLACK.value if self.x == config.Chess.WHITE else config.Chess.WHITE.value
-        self.o = config.Chess.EMPTY.value
+        self.d = Chess.BLACK.value if self.x == Chess.WHITE else Chess.WHITE.value
+        self.o = Chess.EMPTY.value
         # 添加边框
         self._add_border()
 
@@ -209,7 +209,7 @@ class Evaluation(object):
             new_board[i][1:-1] = board[i-1]
         self._chessboard = chessboard.ChessBoard(new_board, size)
         if self._point:
-            self._point = config.Point(self._point.x+1, self._point.y+1, self._point.chess)
+            self._point = Point(self._point.x+1, self._point.y+1, self._point.chess)
 
     def get_score(self):
         """评估局面并给出打分"""
@@ -269,6 +269,14 @@ class Evaluation(object):
         roi = self._chessboard.get_board(self._point, self._roi)
         util.show(roi)
 
+    def check_three(self):
+        """连三"""
+        if self.search_case('xxx'):
+            return 100
+        if self.search_case('xx'):
+            return 10
+        return 1
+
 
 if __name__ == "__main__":
     import util
@@ -284,9 +292,15 @@ if __name__ == "__main__":
         [0, 0, 0, 1, 1, 0, 0, 1, 0, 0],
         [0, 1, 0, 2, 1, 1, 1, 1, 0, 0],
         [0, 0, 0, 1, 1, 2, 1, 0, 0, 0]]
+    raw_input = [
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0]]
 
     board = chessboard.ChessBoard(raw_input, size=len(raw_input))
-    evaluate = Evaluation(board, roi=5, point=config.Point(1, 6, config.Chess.EMPTY))
+    evaluate = Evaluation(board, Chess.BLACK, roi=5, point=Point(2, 2))
     evaluate.show_roi()
     score = evaluate.get_score()
     print("Evaluate score:", score)
