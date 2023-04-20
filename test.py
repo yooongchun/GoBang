@@ -1,28 +1,39 @@
-"""
-判断某矩阵是否存在子矩阵
-"""
-import cv2
-import numpy as np
-import pandas as pd
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
 
 
-def is_sub_matrix(mat, kernel):
-    """子矩阵是否存在"""
-    kernel = kernel.astype(np.float32) / kernel.sum()
-    dst = cv2.filter2D(mat.astype(np.float32), -1, kernel)
-    print(pd.DataFrame(dst.astype(int)))
+class MinMaxSearcher(object):
+    """博弈树搜索"""
+    def _negetive_max(self, take:int, turn: bool, depth: int, alpha: float=-float('inf'), beta: float=float('inf'), path=']'):
+        """递归搜索：返回最佳分数"""
+        # 如果深度为零则返回
+        if depth <= 0 or take == 0:
+            score = int(take == 0) * 100
+            print(f"path:{path}, turn: {turn}, score:{score}, alpha:{alpha}, beta:{beta}")
+            return score, path
+        # 产生新的走法
+        best_path = []
+        for i in range(1, 3):
+            if take - i < 0:
+                continue
+            new_path = path + (f"-->[{i}]" if turn else f"-->({i})")
+            score, sub_path = self._negetive_max(take-i, turn, depth-1, -beta, -alpha, new_path)
+            # 计算最好分值的走法
+            if score > alpha:
+                best_path = sub_path
+                alpha = score
+                # alpha + beta剪枝点
+                if score >= beta:
+                    break
+        return alpha, best_path
+
+    def search(self, max_depth:int=3):
+        """最大递归深度"""
+        score = self._negetive_max(5, True, max_depth)
+        return score
 
 
 if __name__ == "__main__":
-    mat = np.zeros((15, 15))
-    kernel = np.zeros((2, 4, 4), dtype=np.float16)
-    for x, y in [(0,0), (0,1), (0,2), (0,3), (1,3), (2,3),(3,3)]:
-        kernel[0, x, y] = 1
-        kernel[0, y, x] = 1
-        mat[x+5, y+2] = 1
-        mat[x+8, y+8] = 1
-    
-    print(pd.DataFrame(kernel.astype(int)))
-    print(pd.DataFrame(mat.astype(int)))
-
-    is_sub_matrix(mat, kernel)
+    ai = MinMaxSearcher()
+    score, path = ai.search(3)
+    print("Final score", score, path) 

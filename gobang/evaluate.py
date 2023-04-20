@@ -9,8 +9,9 @@ import typing
 from collections import defaultdict as ddict
 from itertools import combinations as comb
 
-from  config import Point, Chess
+import util
 import chessboard
+from  config import Point, Chess
 
 
 class Score(object):
@@ -166,8 +167,8 @@ class Matcher(object):
         return self.indexes
 
 
-class Evaluation(object):
-    """棋盘评估类，给当前棋盘打分用"""
+class MaxEvaluation(object):
+    """棋盘评估类, 只对一个类型打分"""
     def __init__(self, board: chessboard.ChessBoard, target: enum.IntEnum,
                         roi: int=8, point: typing.Optional[Point]=None):
         """初始化
@@ -228,12 +229,13 @@ class Evaluation(object):
             if not match_all:
                 return score + pscore
             # match all
-            if self.is_multi_case(matched):
+            if self._is_multi_case(matched):
                 if score == Score.LEVEL1:
                     return Score.c_db_half_died_four + pscore
                 if score == Score.LEVEL2:
                     return Score.c_db_live_three + pscore
                 return Score.c_db_half_died_three + pscore
+            return score + pscore
         return pscore
 
     def search_case(self, case: str, match_all=False):
@@ -252,7 +254,7 @@ class Evaluation(object):
             return matcher.match_arr()
         return None
 
-    def is_multi_case(self, cases):
+    def _is_multi_case(self, cases):
         """交叉情况判断"""
         for dire1, dire2 in comb(cases.keys(), 2):
             for arr1 in cases[dire1]:
@@ -260,47 +262,57 @@ class Evaluation(object):
                     if len(arr1) + len(arr2) > len(set(arr1) | set(arr2)):
                         return True
 
+
+class Evaluation(object):
+    """对盘面打分,即是自己的最大分-对手的最大分"""
+    
+    def __init__(self, board: chessboard.ChessBoard, target: enum.IntEnum,
+                        roi: int=8, point: typing.Optional[Point]=None):
+        """初始化
+        Args:
+            board: 棋盘, 二维数组
+            roi: 聚焦区域, 当point传入时可指定评估区域,否则就是全局
+            point: 最后一个落子点
+            target: 评分的目标对象
+
+        """
+        self._chessboard = board
+        # roi区域
+        self._roi = roi
+        # 落子点，用来判断位置得分
+        self._point = point
+        self._target = target
+        self._army = Chess.BLACK if target == Chess.WHITE else Chess.WHITE
+
+    def get_score(self):
+        """计算得分"""
+        eva1 = MaxEvaluation(self._chessboard, self._target, self._roi, self._point)
+        eva2 = MaxEvaluation(self._chessboard, self._army, self._roi, self._point)
+        max_score = eva1.get_score()
+        min_score = eva2.get_score()
+        return max_score - min_score
+
     def check_win(self):
         """是否已经获胜"""
-        return self.search_case('xxxxx')
+        eva = MaxEvaluation(self._chessboard, self._target, self._roi, self._point)
+        return eva.search_case('xxxxx')
 
     def show_roi(self):
         """display roi region"""
         roi = self._chessboard.get_board(self._point, self._roi)
         util.show(roi)
 
-    def check_three(self):
-        """连三"""
-        if self.search_case('xxx'):
-            return 100
-        if self.search_case('xx'):
-            return 10
-        return 1
-
 
 if __name__ == "__main__":
-    import util
-
-    raw_input = [
-        [0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
-        [1, 1, 1, 0, 1, 1, 1, 0, 0, 0],
-        [0, 0, 0, 1, 0, 0, 0, 1, 1, 0],
-        [0, 1, 0, 1, 0, 0, 0, 0, 1, 0],
-        [0, 0, 1, 1, 2, 1, 1, 1, 2, 0],
-        [0, 1, 1, 0, 1, 0, 0, 1, 0, 1],
-        [0, 1, 0, 0, 0, 1, 1, 0, 0, 1],
-        [0, 0, 0, 1, 1, 0, 0, 1, 0, 0],
-        [0, 1, 0, 2, 1, 1, 1, 1, 0, 0],
-        [0, 0, 0, 1, 1, 2, 1, 0, 0, 0]]
     raw_input = [
         [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 1, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0]]
-
+        [1, 1, 2, 0, 0],
+        [0, 1, 2, 1, 0],
+        [0, 1, 1, 1, 0],
+        [0, 0, 2, 2, 0]]
     board = chessboard.ChessBoard(raw_input, size=len(raw_input))
     evaluate = Evaluation(board, Chess.BLACK, roi=5, point=Point(2, 2))
-    evaluate.show_roi()
     score = evaluate.get_score()
+    evaluate.show_roi()
     print("Evaluate score:", score)
+    

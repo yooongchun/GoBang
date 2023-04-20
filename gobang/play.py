@@ -93,7 +93,7 @@ class GoBang(QWidget):
             if not self.chessboard.is_empty(point): # 棋子没有落在空白处
                 print(f"Position {point} not empty!")
                 return
-            self.chessboard.set_state(point)
+            self.chessboard.set(point)
             self.draw(point)
             print("AI is thinking...")
             self.ai_down = False
@@ -105,7 +105,7 @@ class GoBang(QWidget):
         """轮到AI下棋"""
         if not self.chessboard.is_empty(point): # 棋子没有落在空白处
             raise ValueError(f"Position {point} is not empty!")
-        self.chessboard.set_state(point)
+        self.chessboard.set(point)
         self.ai_down = True
 
         self.draw(point)

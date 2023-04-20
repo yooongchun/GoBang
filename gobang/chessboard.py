@@ -20,6 +20,7 @@ class ChessBoard(object):
         else:
             assert len(board) == size, "board's shape and config.SIZE is conflict with each other!"
             self._board = board
+        self._history = []
 
     def get_board(self, point:typing.Optional[Point]=None, roi:int=8):
         """获取棋盘
@@ -79,27 +80,28 @@ class ChessBoard(object):
                     end_y += 1
                 left = True
         # crop区域
-        cropped_board = [[self._board[x][y] for x in range(start_x, end_x)] for y in range(start_y, end_y)]
+        cropped_board = [[self._board[j][i] for i in range(start_x, end_x)] for j in range(start_y, end_y)]
         return cropped_board
 
-    def set_state(self, pt:Point):
+    def set(self, pt:Point):
         """落子"""
         if self._board[pt.x][pt.y] != Chess.EMPTY:
             raise ValueError(f"{pt} position not empty!")
         if pt.x < 0 or pt.x >= self.size or pt.y < 0 or pt.y >= self.size:
             raise ValueError(f"{pt} out of boundary!")
         self._board[pt.x][pt.y] = pt.chess.value
+        self._history.append(pt)
         return True
 
-    def unset_state(self, pt:Point):
-        """清除"""
-        assert 0 <= pt.x < self.size, "Invalid point.x"
-        assert 0 <= pt.y < self.size, "Invalid point.y"
+    def unset(self):
+        """回退一步"""
+        if not self._history:
+            return False
+        last = self._history.pop()
+        self._board[last.x][last.y] = Chess.EMPTY.value
+        return last
 
-        self._board[pt.x][pt.y] = Chess.EMPTY.value
-        return True
-
-    def get_state(self, pt:Point):
+    def get(self, pt:Point):
         """获取指定点坐标的状态"""
         assert 0 <= pt.x < self.size, "Invalid pt.x"
         assert 0 <= pt.y < self.size, "Invalid pt.y"
@@ -111,16 +113,19 @@ class ChessBoard(object):
         self._board = [[Chess.EMPTY.value for _ in range(self.size)] for _ in range(self.size)]
         return self._board
 
+    def show(self):
+        """display matrix readable"""
+        for i in range(len(self._board)):
+            row_str = ' '.join(str(v) for v in self._board[i])
+            print(row_str)
+
 
 if __name__ == "__main__":
-    import util
-
     board = ChessBoard(size=15)
-    board.set_state((Point(7,7,Chess.BLACK)))
-    board.set_state((Point(6,8,Chess.BLACK)))
-    board.set_state((Point(5,9,Chess.BLACK)))
-    board.set_state((Point(4,10,Chess.BLACK)))
-    board.set_state((Point(3,11,Chess.BLACK)))
-    board.set_state((Point(2,12,Chess.BLACK)))
-
-    util.show(board.get_board())
+    board.set((Point(7,7,Chess.BLACK)))
+    board.set((Point(6,8,Chess.BLACK)))
+    board.set((Point(5,9,Chess.BLACK)))
+    board.set((Point(4,10,Chess.BLACK)))
+    board.set((Point(3,11,Chess.BLACK)))
+    board.set((Point(2,12,Chess.BLACK)))
+    board.show()
