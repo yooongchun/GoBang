@@ -11,7 +11,7 @@ from PyQt5.QtGui import QBrush, QColor, QIcon, QPainter, QPen, QPixmap
 from PyQt5.QtMultimedia import QSound
 from PyQt5.QtWidgets import QApplication, QLabel, QMessageBox, QWidget
 
-import ai
+from strategy import min_max_tree
 import chessboard
 import evaluate
 from config import Chess, Config, Point
@@ -29,10 +29,12 @@ class AI(QtCore.QThread):
 
     def run(self):
         """独立线程执行"""
-        self.ai = ai.Searcher(self.chessboard, self.role, 8)
-        (x, y), score = self.ai.search(True, 2)
-        print(f"AI searched best move: ({x}, {y}), best score: {score}")
-        self.finishSignal.emit(Point(x, y, self.role))
+        self.ai = min_max_tree.MinMaxSearcher(self.chessboard, self.role, 8)
+        best_score, best_move = self.ai.search(2)
+        if not best_move:
+            raise ValueError("No best move!")
+        print(f"AI searched best move: ({best_move.x}, {best_move.y}), best score: {best_score}")
+        self.finishSignal.emit(Point(best_move.x, best_move.y, self.role))
 
 
 class GoBang(QWidget):
@@ -113,17 +115,20 @@ class GoBang(QWidget):
     def draw(self, point: Point):
         """绘制落子位置的棋子图"""
         self.ui_point = self.coord_map2pixel(point)
-        label = QLabel(self)
-        if point.chess == Chess.BLACK:
-            label.setPixmap(self.black)  # 放置黑色棋子
-        else:
-            label.setPixmap(self.white)  # 放置白色棋子
-        label.setVisible(True)  # 图片可视
-        label.setScaledContents(True)  # 图片大小根据标签大小可变
         size = Config.UI_CHESS_SIZE
         x = self.ui_point.x - size // 2
         y = self.ui_point.y - size // 2
-        label.setGeometry(x, y, size, size)  # 画出棋子
+        w = int(self.GRID_SIZE * 0.5)
+
+        if self.ui_point.chess == Chess.WHITE:
+            color = QColor(10, 10, 10, 80)
+        else:
+            color = QColor(240, 230, 240, 80)
+        qp = QPainter()
+        brush = QBrush(color)
+        qp.setBrush(brush)
+        qp.drawEllipse(x, y, w, w)
+        
         self.sound_piece.play()  # 落子音效
         self.step += 1  # 步数+1
         if evaluate.Evaluation(self.chessboard, point.chess).check_win():  # 判断输赢

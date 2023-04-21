@@ -1,14 +1,16 @@
 # !/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
-import typing
+import random
+from typing import Optional, List
 
+import util
 from config import Chess, Point, Config
 
 
 class ChessBoard(object):
     """定义棋盘类及关联的操作"""
-    def __init__(self, board:typing.Optional[typing.List[list]]=None, size:int=Config.SIZE):
+    def __init__(self, board:Optional[List[list]]=None, size:int=Config.SIZE):
         """初始化
         Args:
             board: 用board初始化
@@ -22,7 +24,7 @@ class ChessBoard(object):
             self._board = board
         self._history = []
 
-    def get_board(self, point:typing.Optional[Point]=None, roi:int=8):
+    def get_board(self, point:Optional[Point]=None, roi:int=8):
         """获取棋盘
         Args:
             point: 兴趣点中心, 当和roi一起传递时会截取关注区域
@@ -38,16 +40,41 @@ class ChessBoard(object):
             raise ValueError(f"{pt} out of boundary!")
         return self._board[pt.x][pt.y] == Chess.EMPTY
 
-    def get_empty(self):
-        """空位置"""
+    def has_empty(self):
+        """是否有空位置"""
+        return len(self._history) < self.size ** 2
+
+    def get_empty(self, neighbor_layer:Optional[int]=2, shuffle=True):
+        """空位置
+        Args:
+            neighbor_layer: 当传入此参数时表示空位置必须存在邻居
+            shuffle: 随时随机打乱
+        """
+        if len(self._history) == 0:
+            return [(self.size // 2, self.size // 2)]
         moves = []
         for i in range(self.size):
             for j in range(self.size):
                 if self._board[i][j] == Chess.EMPTY:
-                    moves.append((i,j))
+                    if neighbor_layer and self._has_neighbors(i, j, neighbor_layer):
+                        moves.append((i,j))
+                    elif not neighbor_layer:
+                        moves.append((i,j))
+        if shuffle:
+            random.shuffle(moves)
         return moves
 
-    def _crop_roi(self, point:Point, roi):
+    def _has_neighbors(self, x:int, y:int, layer:int=2):
+        """是否有邻居"""
+        for i in range(max(0, x-layer), min(self.size, x+layer+1)):
+            for j in range(max(0, y-layer), min(self.size, y+layer+1)):
+                if i == x and j == y:
+                    continue
+                if self._board[i][j] != Chess.EMPTY:
+                    return True
+        return False
+
+    def _crop_roi(self, point:Point, roi:int):
         """截取ROI区域
         Args:
             point: 兴趣点中心, 当和roi一起传递时会截取关注区域
@@ -115,10 +142,8 @@ class ChessBoard(object):
 
     def show(self):
         """display matrix readable"""
-        for i in range(len(self._board)):
-            row_str = ' '.join(str(v) for v in self._board[i])
-            print(row_str)
-
+        util.show(self._board)
+    
 
 if __name__ == "__main__":
     board = ChessBoard(size=15)

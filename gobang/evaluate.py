@@ -284,13 +284,15 @@ class Evaluation(object):
         self._target = target
         self._army = Chess.BLACK if target == Chess.WHITE else Chess.WHITE
 
-    def get_score(self):
+    def get_score(self, min_max=False):
         """计算得分"""
         eva1 = MaxEvaluation(self._chessboard, self._target, self._roi, self._point)
         eva2 = MaxEvaluation(self._chessboard, self._army, self._roi, self._point)
         max_score = eva1.get_score()
         min_score = eva2.get_score()
-        return max_score - min_score
+        if not min_max:
+            return max_score - min_score
+        return max_score, min_score
 
     def check_win(self):
         """是否已经获胜"""
@@ -305,14 +307,14 @@ class Evaluation(object):
 
 if __name__ == "__main__":
     raw_input = [
-        [0, 0, 0, 0, 0],
-        [1, 1, 2, 0, 0],
-        [0, 1, 2, 1, 0],
-        [0, 1, 1, 1, 0],
-        [0, 0, 2, 2, 0]]
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 2, 0, 0, 0],
+        [0, 1, 1, 2, 0, 0],
+        [0, 1, 2, 2, 2, 0],
+        [0, 0, 1, 1, 0, 0],
+        [0, 0, 2, 0, 0, 0]]
     board = chessboard.ChessBoard(raw_input, size=len(raw_input))
     evaluate = Evaluation(board, Chess.BLACK, roi=5, point=Point(2, 2))
     score = evaluate.get_score()
     evaluate.show_roi()
     print("Evaluate score:", score)
-    
